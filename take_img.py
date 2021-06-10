@@ -1,9 +1,7 @@
 import ctypes
 import time
-
-import cv2
-import numpy
-
+import numpy as np
+from astropy.io import fits
 
 qhyccd = ctypes.CDLL('/usr/local/lib/libqhyccd.so')
 qhyccd.GetQHYCCDParam.restype = ctypes.c_double
@@ -50,40 +48,47 @@ print([
 
 GAIN = ctypes.c_int(8)
 EXPOSURE_TIME = ctypes.c_int(8)
-depth = ctypes.c_uint32(8)
+depth = ctypes.c_uint(16)
 
-qhyccd.SetQHYCCDBitsMode(camera_handle, depth)
+for exp_time in [1000, 10000, 100000, 1000000]:
+    qhyccd.SetQHYCCDBitsMode(camera_handle, depth)
+    
+    qhyccd.SetQHYCCDParam.restype = ctypes.c_uint32
+    qhyccd.SetQHYCCDParam.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double]
+    
+    qhyccd.SetQHYCCDParam(camera_handle, GAIN, ctypes.c_double(60))
+    qhyccd.SetQHYCCDParam(camera_handle, EXPOSURE_TIME, ctypes.c_double(exp_time))
+    qhyccd.SetQHYCCDResolution(camera_handle, ctypes.c_uint32(0), ctypes.c_uint32(0), maxImageSizeX, maxImageSizeY)
+    qhyccd.SetQHYCCDBinMode(camera_handle, ctypes.c_uint32(1), ctypes.c_uint32(1))
+    qhyccd.ExpQHYCCDSingleFrame(camera_handle)
+    
+    image_data = (ctypes.c_uint16 * maxImageSizeX.value * maxImageSizeY.value)()
+    channels = ctypes.c_uint32(1)
 
-qhyccd.SetQHYCCDParam.restype = ctypes.c_uint32
-qhyccd.SetQHYCCDParam.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double]
-
-qhyccd.SetQHYCCDParam(camera_handle, GAIN, ctypes.c_double(100))
-qhyccd.SetQHYCCDParam(camera_handle, EXPOSURE_TIME, ctypes.c_double(66666))
-qhyccd.SetQHYCCDResolution(camera_handle, ctypes.c_uint32(0), ctypes.c_uint32(0), maxImageSizeX, maxImageSizeY)
-qhyccd.SetQHYCCDBinMode(camera_handle, ctypes.c_uint32(1), ctypes.c_uint32(1))
-qhyccd.ExpQHYCCDSingleFrame(camera_handle)
-
-image_data = (ctypes.c_uint8 * maxImageSizeX.value * maxImageSizeY.value)()
-channels = ctypes.c_uint32(1)
-
-qhyccd.ExpQHYCCDSingleFrame(camera_handle)
-time.sleep(1)
-
-
-response = qhyccd.GetQHYCCDSingleFrame(
-    camera_handle, ctypes.byref(maxImageSizeX), ctypes.byref(maxImageSizeY),
-    ctypes.byref(depth), ctypes.byref(channels), image_data,
-)
-
-print('RESPONSE: %s' % response)
-bytes_data = bytearray(image_data)
-print(bytes_data[0], bytes_data[1])
-
-raw_array = numpy.array(bytes_data)
-mono_image = raw_array.reshape(maxImageSizeY.value, maxImageSizeX.value)
-cv2.imwrite('frame.bmp', mono_image)
+    t = time.time()
+    qhyccd.ExpQHYCCDSingleFrame(camera_handle)
+    t2 = time.time()
+    print("exp_time", t2 - t)
+    time.sleep(1)
 
 
-qhyccd.CancelQHYCCDExposingAndReadout(camera_handle)
+    response = qhyccd.GetQHYCCDSingleFrame(
+        camera_handle, ctypes.byref(maxImageSizeX), ctypes.byref(maxImageSizeY),
+        ctypes.byref(depth), ctypes.byref(channels), image_data,
+    )
+    
+    print("image_data", image_data)
+    mono_image = np.array(image_data)
+    print("mono_image", mono_image)
+    print("mono_image.shape", mono_image.shape)
+    
+    print('RESPONSE: %s' % response)
+    
+
+    hdu = fits.PrimaryHDU(mono_image)
+    hdul = fits.HDUList([hdu])
+    hdul.writeto("img_exp=%.3g.fits" % (exp_time/1e6), clobber = True)
+
+    qhyccd.CancelQHYCCDExposingAndReadout(camera_handle)
 qhyccd.CloseQHYCCD(camera_handle)
 qhyccd.ReleaseQHYCCDResource()
