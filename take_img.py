@@ -105,6 +105,7 @@ for exp_time in tqdm.tqdm(exp_times):
 
     hdu = fits.PrimaryHDU(mono_image)
     hdu.header["EXPTIME"] = exp_time/1e6
+    hdu.header["EPTIME"] = time.time()
     hdul = fits.HDUList([hdu])
     hdul.writeto("img_%04i_exp_%.4g_%s.fits" % (im_count, exp_time/1e6, sys.argv[2]), clobber = True)
     time.sleep(1)
