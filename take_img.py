@@ -51,7 +51,7 @@ GAIN = ctypes.c_int(8)
 EXPOSURE_TIME = ctypes.c_int(8)
 depth = ctypes.c_uint(16)
 
-exp_times = np.array(np.around(10**np.linspace(3, 6, 100)), dtype=np.int32)
+exp_times = np.array(1000*np.around(10**np.linspace(1, 4, 100)), dtype=np.int32)
 np.random.shuffle(exp_times)
 print(exp_times)
 
