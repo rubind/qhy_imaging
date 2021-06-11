@@ -3,6 +3,7 @@ import time
 import tqdm
 import numpy as np
 from astropy.io import fits
+import sys
 
 qhyccd = ctypes.CDLL('/usr/local/lib/libqhyccd.so')
 qhyccd.GetQHYCCDParam.restype = ctypes.c_double
@@ -47,13 +48,23 @@ print([
     pixelWidthUM.value, pixelHeightUM.value, bpp.value
 ])
 
+
 GAIN = ctypes.c_int(8)
 EXPOSURE_TIME = ctypes.c_int(8)
 depth = ctypes.c_uint(16)
 
-exp_times = np.array(1000*np.around(10**np.linspace(1, 4, 100)), dtype=np.int32)
-np.random.shuffle(exp_times)
+sys.argv[1]
+sys.argv[2]
+
+if sys.argv[1].count("-") > 0:
+    parsed = sys.argv[1].split("-")
+    exp_times = np.array(np.around(10**np.linspace(np.log10(float(parsed[0])) + 3, np.log10(float(parsed[1])) + 3, int(parsed[2]))), dtype=np.int32)*1000
+    np.random.shuffle(exp_times)
+else:
+    exp_times = [float(sys.argv[1])*1e6]
 print(exp_times)
+
+im_count = 1
 
 for exp_time in tqdm.tqdm(exp_times):
     qhyccd.SetQHYCCDBitsMode(camera_handle, depth)
@@ -94,11 +105,13 @@ for exp_time in tqdm.tqdm(exp_times):
 
     hdu = fits.PrimaryHDU(mono_image)
     hdu.header["EXPTIME"] = exp_time/1e6
+    hdu.header["EPTIME"] = time.time()
     hdul = fits.HDUList([hdu])
-    hdul.writeto("img_exp_%.3g.fits" % (exp_time/1e6), clobber = True)
+    hdul.writeto("img_%04i_exp_%.4g_%s.fits" % (im_count, exp_time/1e6, sys.argv[2]), clobber = True)
     time.sleep(1)
 
 
     qhyccd.CancelQHYCCDExposingAndReadout(camera_handle)
+    im_count += 1
 qhyccd.CloseQHYCCD(camera_handle)
 qhyccd.ReleaseQHYCCDResource()
