@@ -5,6 +5,14 @@ import numpy as np
 from astropy.io import fits
 import sys
 
+#**** do these before InitQHYCCD  (you can Only set them ONCE after open) ***
+#GetQHYCCDNumberOfReadModes(camhandle, numModes);
+#// Use GetQHYCCDReadModeName if you need more detail
+#SetQHYCCDReadMode(camhandle, modeNumber);
+#[DllImport("qhyccd.dll", EntryPoint = "ControlQHYCCDTemp",
+#         CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+#        public unsafe static extern UInt32 ControlQHYCCDTemp(IntPtr handle, double targettemp);
+
 qhyccd = ctypes.CDLL('/usr/local/lib/libqhyccd.so')
 qhyccd.GetQHYCCDParam.restype = ctypes.c_double
 qhyccd.OpenQHYCCD.restype = ctypes.POINTER(ctypes.c_uint32)
