@@ -132,9 +132,7 @@ for exp_time, the_gain in tqdm.tqdm(exp_times_gains):
     qhyccd.SetQHYCCDParam(camera_handle, CONTROL_COOLER, ctypes.c_double(0))
     qhyccd.SetQHYCCDParam(camera_handle, EXPOSURE_TIME, ctypes.c_double(exp_time))
     
-    #qhyccd.SetQHYCCDParam(camera_handle, CONTROL_OFFSET, ctypes.c_uint8(50))
-    #qhyccd.SetQHYCCDParam(camera_handle, CONTROL_OFFSET, ctypes.c_int(50))
-    #qhyccd.SetQHYCCDParam(camera_handle, CONTROL_OFFSET, ctypes.c_double(10))
+    qhyccd.SetQHYCCDParam(camera_handle, CONTROL_OFFSET, ctypes.c_double(10))
     qhyccd.SetQHYCCDResolution(camera_handle, ctypes.c_uint32(0), ctypes.c_uint32(0), maxImageSizeX, maxImageSizeY)
     qhyccd.SetQHYCCDBinMode(camera_handle, ctypes.c_uint32(1), ctypes.c_uint32(1))
     qhyccd.ExpQHYCCDSingleFrame(camera_handle)
