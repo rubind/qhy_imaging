@@ -58,14 +58,13 @@ bpp = ctypes.c_uint32(0)
 Camera_info = qhyccd.GetQHYCCDChipInfo(
     camera_handle, ctypes.byref(chipWidthMM), ctypes.byref(chipHeightMM), ctypes.byref(maxImageSizeX),
     ctypes.byref(maxImageSizeY), ctypes.byref(pixelWidthUM), ctypes.byref(pixelHeightUM),
-    ctypes.byref(bpp),
-)
+    ctypes.byref(bpp),)
 
-print("chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY.value,
-    pixelWidthUM.value, pixelHeightUM.value, bpp.value", [
-        chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY.value,
-        pixelWidthUM.value, pixelHeightUM.value, bpp.value
-    ])
+
+print("chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY.value, pixelWidthUM.value, pixelHeightUM.value, bpp.value", [
+    chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY.value,
+    pixelWidthUM.value, pixelHeightUM.value, bpp.value
+])
 
 
 
