@@ -4,6 +4,14 @@ import tqdm
 import numpy as np
 from astropy.io import fits
 import sys
+import subprocess
+import random
+ 
+def send_notification(notify):
+    print(
+        subprocess.getoutput('mail -s "QHY" ' + notify + ' < /dev/null')
+        )
+
 
 #**** do these before InitQHYCCD  (you can Only set them ONCE after open) ***
 #GetQHYCCDNumberOfReadModes(camhandle, numModes);
@@ -46,7 +54,8 @@ maxImageSizeY = ctypes.c_uint32(0)
 pixelWidthUM = ctypes.c_uint32(0)
 pixelHeightUM = ctypes.c_uint32(0)
 bpp = ctypes.c_uint32(0)
-camera_info = qhyccd.GetQHYCCDChipInfo(
+
+Camera_info = qhyccd.GetQHYCCDChipInfo(
     camera_handle, ctypes.byref(chipWidthMM), ctypes.byref(chipHeightMM), ctypes.byref(maxImageSizeX),
     ctypes.byref(maxImageSizeY), ctypes.byref(pixelWidthUM), ctypes.byref(pixelHeightUM),
     ctypes.byref(bpp),
@@ -57,35 +66,76 @@ print([
 ])
 
 
-GAIN = ctypes.c_int(8)
+CONTROL_GAIN = ctypes.c_int(6)
 EXPOSURE_TIME = ctypes.c_int(8)
-depth = ctypes.c_uint(16)
+depth = ctypes.c_uint32(8)
+CONTROL_COOLER = ctypes.c_int(0)
+CONTROL_OFFSET = ctypes.c_int(7)
+
+print("CONTROL_OFFSET", CONTROL_OFFSET)
+print("depth", depth)
 
 sys.argv[1]
 sys.argv[2]
+sys.argv[3]
+
+if sys.argv.count("notify") == 1:
+    ind = sys.argv.index("notify")
+    notify = sys.argv[ind+1]
+    del sys.argv[ind+1]
+    del sys.argv[ind]
+    
+else:
+    notify = ""
 
 if sys.argv[1].count("-") > 0:
     parsed = sys.argv[1].split("-")
     exp_times = np.array(np.around(10**np.linspace(np.log10(float(parsed[0])) + 3, np.log10(float(parsed[1])) + 3, int(parsed[2]))), dtype=np.int32)*1000
-    np.random.shuffle(exp_times)
 else:
     exp_times = [float(sys.argv[1])*1e6]
 print(exp_times)
 
+if sys.argv[2].count("-") > 0:
+    parsed = sys.argv[2].split("-")
+    the_gains = np.arange(int(parsed[0]), int(parsed[1]) + 1, 1)
+else:
+    the_gains = [int(sys.argv[2])]
+the_gains = [int(item) for item in the_gains]
+print(the_gains)
+
+exp_times_gains = []
+for exp_time in exp_times:
+    for the_gain in the_gains:
+        exp_times_gains.append((exp_time, the_gain))
+        
+random.shuffle(exp_times_gains)
+
+
 im_count = 1
 
-for exp_time in tqdm.tqdm(exp_times):
+if notify != "":
+    print("Waiting 30s for you to leave")
+    time.sleep(30)
+    send_notification(notify)
+
+
+for exp_time, the_gain in tqdm.tqdm(exp_times_gains):
     qhyccd.SetQHYCCDBitsMode(camera_handle, depth)
-    
+
     qhyccd.SetQHYCCDParam.restype = ctypes.c_uint32
     qhyccd.SetQHYCCDParam.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double]
-    
-    qhyccd.SetQHYCCDParam(camera_handle, GAIN, ctypes.c_double(60))
+
+    qhyccd.SetQHYCCDParam(camera_handle, CONTROL_GAIN, ctypes.c_double(the_gain))
+    qhyccd.SetQHYCCDParam(camera_handle, CONTROL_COOLER, ctypes.c_double(0))
     qhyccd.SetQHYCCDParam(camera_handle, EXPOSURE_TIME, ctypes.c_double(exp_time))
+    
+    #qhyccd.SetQHYCCDParam(camera_handle, CONTROL_OFFSET, ctypes.c_uint8(50))
+    #qhyccd.SetQHYCCDParam(camera_handle, CONTROL_OFFSET, ctypes.c_int(50))
+    #qhyccd.SetQHYCCDParam(camera_handle, CONTROL_OFFSET, ctypes.c_double(10))
     qhyccd.SetQHYCCDResolution(camera_handle, ctypes.c_uint32(0), ctypes.c_uint32(0), maxImageSizeX, maxImageSizeY)
     qhyccd.SetQHYCCDBinMode(camera_handle, ctypes.c_uint32(1), ctypes.c_uint32(1))
     qhyccd.ExpQHYCCDSingleFrame(camera_handle)
-    
+
     image_data = (ctypes.c_uint16 * maxImageSizeX.value * maxImageSizeY.value)()
     channels = ctypes.c_uint32(1)
 
@@ -102,24 +152,35 @@ for exp_time in tqdm.tqdm(exp_times):
 
     print("exp_time", exp_time, t2 - t, t3 - t2)
 
-    
+
     print("image_data", image_data)
     mono_image = np.array(image_data)
     print("mono_image", mono_image)
     print("mono_image.shape", mono_image.shape)
-    
+
     print('RESPONSE: %s' % response)
-    
+
 
     hdu = fits.PrimaryHDU(mono_image)
     hdu.header["EXPTIME"] = exp_time/1e6
     hdu.header["EPTIME"] = time.time()
+    hdu.header["GAIN"] = the_gain
     hdul = fits.HDUList([hdu])
-    hdul.writeto("img_%04i_exp_%.4g_%s.fits" % (im_count, exp_time/1e6, sys.argv[2]), clobber = True)
+    hdul.writeto("img_%04i_exp_%.4g_gain_%03i_%s.fits" % (im_count, exp_time/1e6, the_gain, sys.argv[3]), clobber = True)
     time.sleep(1)
 
+    print("Median", np.median(mono_image))
 
     qhyccd.CancelQHYCCDExposingAndReadout(camera_handle)
     im_count += 1
+
+    if notify != "":
+        if im_count % 10 == 0:
+            send_notification(notify)
+
+            
 qhyccd.CloseQHYCCD(camera_handle)
 qhyccd.ReleaseQHYCCDResource()
+
+if notify != "":
+    send_notification(notify)
