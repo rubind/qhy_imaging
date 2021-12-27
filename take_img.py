@@ -60,20 +60,14 @@ Camera_info = qhyccd.GetQHYCCDChipInfo(
     ctypes.byref(maxImageSizeY), ctypes.byref(pixelWidthUM), ctypes.byref(pixelHeightUM),
     ctypes.byref(bpp),
 )
-print([
-    chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY.value,
-    pixelWidthUM.value, pixelHeightUM.value, bpp.value
-])
+
+print("chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY.value,
+    pixelWidthUM.value, pixelHeightUM.value, bpp.value", [
+        chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY.value,
+        pixelWidthUM.value, pixelHeightUM.value, bpp.value
+    ])
 
 
-CONTROL_GAIN = ctypes.c_int(6)
-EXPOSURE_TIME = ctypes.c_int(8)
-depth = ctypes.c_uint32(8)
-CONTROL_COOLER = ctypes.c_int(0)
-CONTROL_OFFSET = ctypes.c_int(7)
-
-print("CONTROL_OFFSET", CONTROL_OFFSET)
-print("depth", depth)
 
 sys.argv[1]
 sys.argv[2]
@@ -119,6 +113,16 @@ if notify != "":
     send_notification(notify)
 
 
+
+CONTROL_GAIN = ctypes.c_int(6)
+EXPOSURE_TIME = ctypes.c_int(8)
+depth = ctypes.c_uint32(8)
+CONTROL_COOLER = ctypes.c_int(0)
+CONTROL_OFFSET = ctypes.c_int(7)
+
+print("CONTROL_OFFSET", CONTROL_OFFSET)
+print("depth", depth)
+
 for exp_time, the_gain in tqdm.tqdm(exp_times_gains):
     qhyccd.SetQHYCCDBitsMode(camera_handle, depth)
 
@@ -153,7 +157,7 @@ for exp_time, the_gain in tqdm.tqdm(exp_times_gains):
     print("exp_time", exp_time, t2 - t, t3 - t2)
 
 
-    print("image_data", image_data)
+    print("image_data", image_data, len(image_data))
     mono_image = np.array(image_data)
     print("mono_image", mono_image)
     print("mono_image.shape", mono_image.shape)
