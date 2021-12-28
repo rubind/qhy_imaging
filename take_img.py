@@ -153,9 +153,11 @@ for exp_time, the_gain in tqdm.tqdm(exp_times_gains):
 
     print("exp_time", exp_time, t2 - t, t3 - t2)
 
-
     print("image_data", image_data, len(image_data))
 
+    print(image_data[0])
+    print(image_data[0][0])
+    
     mono_image = np.array(image_data)
     print("mono_image", mono_image)
     print("mono_image.shape", mono_image.shape)
