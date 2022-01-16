@@ -115,15 +115,16 @@ if notify != "":
 
 CONTROL_GAIN = ctypes.c_int(6)
 EXPOSURE_TIME = ctypes.c_int(8)
-depth = ctypes.c_uint32(8)
+#depth = ctypes.c_uint32(8)
 CONTROL_COOLER = ctypes.c_int(0)
 CONTROL_OFFSET = ctypes.c_int(7)
 
 print("CONTROL_OFFSET", CONTROL_OFFSET)
-print("depth", depth)
+#print("depth", depth)
+print("bpp", bpp)
 
 for exp_time, the_gain in tqdm.tqdm(exp_times_gains):
-    qhyccd.SetQHYCCDBitsMode(camera_handle, depth)
+    qhyccd.SetQHYCCDBitsMode(camera_handle, bpp)
 
     qhyccd.SetQHYCCDParam.restype = ctypes.c_uint32
     qhyccd.SetQHYCCDParam.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double]
@@ -147,7 +148,7 @@ for exp_time, the_gain in tqdm.tqdm(exp_times_gains):
 
     response = qhyccd.GetQHYCCDSingleFrame(
         camera_handle, ctypes.byref(maxImageSizeX), ctypes.byref(maxImageSizeY),
-        ctypes.byref(depth), ctypes.byref(channels), image_data,
+        ctypes.byref(bpp), ctypes.byref(channels), image_data,
     )
     t3 = time.time()
 
