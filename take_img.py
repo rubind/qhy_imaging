@@ -153,11 +153,22 @@ for exp_time, the_gain in tqdm.tqdm(exp_times_gains):
 
     print("exp_time", exp_time, t2 - t, t3 - t2)
 
-    print("image_data", image_data, len(image_data))
+    #print("image_data", image_data, len(image_data))
 
-    print(image_data[0])
-    print(image_data[0][0])
+    #print(image_data[0])
+    #print(image_data[0][0])
     
+    tmp_array = np.frombuffer(image_data, dtype=np.uint16)
+    print("tmp_array", tmp_array, len(tmp_array))
+    
+    #bytes_data = bytearray(image_data)
+    #print("hytes_data", bytes_data[0], bytes_data[1])
+    
+    #raw_array = numpy.array(bytes_data)
+    #print("raw_array", raw_array)
+    mono_image = tmp_array.reshape(maxImageSizeY.value, maxImageSizeX.value)
+
+
     mono_image = np.array(image_data)
     print("mono_image", mono_image)
     print("mono_image.shape", mono_image.shape)
