@@ -103,7 +103,7 @@ print("is_darks", is_darks)
 
 im_count = 1
 
-the_gain = 50
+the_gain = 60
 
 print("Waiting 30s for you to leave")
 time.sleep(30)
