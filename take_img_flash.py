@@ -15,6 +15,11 @@ def send_notification(notify):
 def do_it(cmd):
     print(cmd)
     print(subprocess.getoutput(cmd))
+    #subprocess.run([cmd], capture_output=False)
+    #subprocess.Popen(cmd,
+    #                 stdout=subprocess.PIPE)
+    subprocess.Popen(cmd, shell=True)
+    
 
 #**** do these before InitQHYCCD  (you can Only set them ONCE after open) ***
 #GetQHYCCDNumberOfReadModes(camhandle, numModes);
@@ -70,7 +75,7 @@ print("chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY
 ])
 
 
-before_after = 3
+before_after = 5
 
 exp_times = list(np.array(np.around(
     10**np.linspace(np.log10(20e3), np.log10(20e6), int(sys.argv[1])) + before_after*2e6,
@@ -135,7 +140,7 @@ for exp_time, is_dark in tqdm.tqdm(exp_dark):
     channels = ctypes.c_uint32(1)
     if not is_dark:
         do_it("ssh rubind@cdhcp119.IfA.Hawaii.Edu 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;python drive_AD2.py %f %f &'" % (exp_time*1e-6 - 2.*before_after, before_after))
-
+        
     print("Ready to expose")
     t = time.time()
     qhyccd.ExpQHYCCDSingleFrame(camera_handle)

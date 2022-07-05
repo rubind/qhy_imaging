@@ -25,7 +25,7 @@ channel = c_int(0)
 pulse = float(sys.argv[1])
 sleeptime = float(sys.argv[2])
 
-time.sleep(sleeptime)
+#time.sleep(sleeptime)
 
 version = create_string_buffer(16)
 dwf.FDwfGetVersion(version)
@@ -49,13 +49,13 @@ dwf.FDwfAnalogOutNodeEnableSet(hdwf, channel, AnalogOutNodeCarrier, c_bool(True)
 dwf.FDwfAnalogOutIdleSet(hdwf, channel, DwfAnalogOutIdleOffset)
 dwf.FDwfAnalogOutNodeFunctionSet(hdwf, channel, AnalogOutNodeCarrier, funcSquare)
 dwf.FDwfAnalogOutNodeFrequencySet(hdwf, channel, AnalogOutNodeCarrier, c_double(0)) # low frequency
-dwf.FDwfAnalogOutNodeAmplitudeSet(hdwf, channel, AnalogOutNodeCarrier, c_double(3.3))
 dwf.FDwfAnalogOutNodeOffsetSet(hdwf, channel, AnalogOutNodeCarrier, c_double(0))
-dwf.FDwfAnalogOutRunSet(hdwf, channel, c_double(pulse)) # pulse length
-dwf.FDwfAnalogOutWaitSet(hdwf, channel, c_double(0)) # wait length
+dwf.FDwfAnalogOutWaitSet(hdwf, channel, c_double(sleeptime)) # wait length
 dwf.FDwfAnalogOutRepeatSet(hdwf, channel, c_int(1)) # repeat once
 
 print("Generating pulse")
+dwf.FDwfAnalogOutRunSet(hdwf, channel, c_double(pulse)) # pulse length
+dwf.FDwfAnalogOutNodeAmplitudeSet(hdwf, channel, AnalogOutNodeCarrier, c_double(3.3))
 dwf.FDwfAnalogOutConfigure(hdwf, channel, c_bool(True))
 
 dwf.FDwfDeviceClose(hdwf)
