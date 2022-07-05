@@ -196,3 +196,4 @@ for exp_time, is_dark in tqdm.tqdm(exp_dark):
 qhyccd.CloseQHYCCD(camera_handle)
 qhyccd.ReleaseQHYCCDResource()
 
+do_it("ssh rubind@cdhcp119.IfA.Hawaii.Edu 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;bash done.sh'") 
