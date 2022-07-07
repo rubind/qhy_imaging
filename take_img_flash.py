@@ -52,6 +52,13 @@ result = qhyccd.GetQHYCCDId(position_id, id_object)
 
 camera_handle = qhyccd.OpenQHYCCD(id_object)
 
+#print(qhyccd.GetQHYCCDNumberOfReadModes(camera_handle))
+
+#print("numModes", numModes)
+#print(qhyccd.GetQHYCCDReadModeName(camera_handle))
+
+
+qhyccd.SetQHYCCDReadMode(camera_handle, ctypes.c_uint32(1))
 qhyccd.SetQHYCCDStreamMode(camera_handle, ctypes.c_uint32(0))
 qhyccd.InitQHYCCD(camera_handle)
 
@@ -103,10 +110,15 @@ print("is_darks", is_darks)
 
 im_count = 1
 
-the_gain = 60
+the_gain = 56
 
-print("Waiting 30s for you to leave")
-time.sleep(30)
+
+
+if len(exp_times) < 2:
+    print("You're clearly testing, no need to wait")
+else:
+    print("Waiting 30s for you to leave")
+    time.sleep(30)
 
 
 
@@ -116,6 +128,7 @@ EXPOSURE_TIME = ctypes.c_int(8)
 #depth = ctypes.c_uint32(8)
 CONTROL_COOLER = ctypes.c_int(0)
 CONTROL_OFFSET = ctypes.c_int(7)
+CONTROL_CURTEMP = ctypes.c_short(14)
 
 print("CONTROL_OFFSET", CONTROL_OFFSET)
 #print("depth", depth)
@@ -139,7 +152,7 @@ for exp_time, is_dark in tqdm.tqdm(exp_dark):
     image_data = (ctypes.c_uint16 * maxImageSizeX.value * maxImageSizeY.value)()
     channels = ctypes.c_uint32(1)
     if not is_dark:
-        do_it("ssh rubind@cdhcp119.IfA.Hawaii.Edu 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;python drive_AD2.py %f %f &'" % (exp_time*1e-6 - 2.*before_after, before_after))
+        do_it("ssh rubind@cdhcp101.IfA.Hawaii.Edu 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;python drive_AD2.py %f %f &'" % (exp_time*1e-6 - 2.*before_after, before_after))
         
     print("Ready to expose")
     t = time.time()
@@ -182,6 +195,7 @@ for exp_time, is_dark in tqdm.tqdm(exp_dark):
     hdu.header["EXPTIME"] = exp_time/1e6
     hdu.header["EPTIME"] = time.time()
     hdu.header["GAIN"] = the_gain
+    hdu.header["CCDTEMP"] = qhyccd.GetQHYCCDParam(camera_handle, CONTROL_CURTEMP)
     hdul = fits.HDUList([hdu])
     hdul.writeto("img_%04i_flash_exp_%.4g_gain_%03i_dark=%i.fits" % (im_count, exp_time/1e6, the_gain, is_dark), clobber = True)
     time.sleep(1)
@@ -196,4 +210,4 @@ for exp_time, is_dark in tqdm.tqdm(exp_dark):
 qhyccd.CloseQHYCCD(camera_handle)
 qhyccd.ReleaseQHYCCDResource()
 
-do_it("ssh rubind@cdhcp119.IfA.Hawaii.Edu 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;bash done.sh'") 
+do_it("ssh rubind@cdhcp101.IfA.Hawaii.Edu 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;bash done.sh'") 
