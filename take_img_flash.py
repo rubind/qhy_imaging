@@ -19,6 +19,11 @@ def do_it(cmd):
     #subprocess.Popen(cmd,
     #                 stdout=subprocess.PIPE)
     subprocess.Popen(cmd, shell=True)
+
+#def open_connection():
+
+
+#def close_connection():
     
 
 #**** do these before InitQHYCCD  (you can Only set them ONCE after open) ***
@@ -83,17 +88,29 @@ print("chipWidthMM.value, chipHeightMM.value, maxImageSizeX.value, maxImageSizeY
 
 
 before_after = 5
+min_time = 5e3
+max_time = 20e6
 
-exp_times = list(np.array(np.around(
-    10**np.linspace(np.log10(20e3), np.log10(20e6), int(sys.argv[1])) + before_after*2e6,
-    -3), dtype=np.int32))
-
+if 0:
+    exp_times = list(np.array(np.around(
+        10**np.linspace(np.log10(min_time), np.log10(max_time), int(sys.argv[1])) + before_after*2e6,
+        -3), dtype=np.int32))
+else:
+    exp_times = list(np.array(np.around(
+        10**(np.random.random(size = int(sys.argv[1]))*np.log10(max_time/min_time) + np.log10(min_time)) + before_after*2e6,
+        -3), dtype=np.int32))
+    
 n_darks = int(float(sys.argv[1])/5.)
+
+assert int(sys.argv[1]) < 16
+
+mac_to_use = sys.argv[2]
+suffix = sys.argv[3]
 
 print("n_darks", n_darks)
 
 is_darks = [0]*len(exp_times) + [1]*n_darks
-exp_times += [max(exp_times)]*n_darks
+exp_times += [int(max_time)]*n_darks
 
 exp_dark = list(zip(exp_times, is_darks))
 
@@ -134,6 +151,8 @@ print("CONTROL_OFFSET", CONTROL_OFFSET)
 #print("depth", depth)
 print("bpp", bpp)
 
+all_med_string = ""
+
 for exp_time, is_dark in tqdm.tqdm(exp_dark):
     qhyccd.SetQHYCCDBitsMode(camera_handle, bpp)
 
@@ -152,7 +171,7 @@ for exp_time, is_dark in tqdm.tqdm(exp_dark):
     image_data = (ctypes.c_uint16 * maxImageSizeX.value * maxImageSizeY.value)()
     channels = ctypes.c_uint32(1)
     if not is_dark:
-        do_it("ssh rubind@cdhcp101.IfA.Hawaii.Edu 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;python drive_AD2.py %f %f &'" % (exp_time*1e-6 - 2.*before_after, before_after))
+        do_it("ssh " + mac_to_use + " 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;python drive_AD2.py %f %f &'" % (exp_time*1e-6 - 2.*before_after, before_after))
         
     print("Ready to expose")
     t = time.time()
@@ -195,13 +214,17 @@ for exp_time, is_dark in tqdm.tqdm(exp_dark):
     hdu.header["EXPTIME"] = exp_time/1e6
     hdu.header["EPTIME"] = time.time()
     hdu.header["GAIN"] = the_gain
+    hdu.header["TIME"] = time.time()
+    hdu.header["ASCTIME"] = time.asctime()
     hdu.header["CCDTEMP"] = qhyccd.GetQHYCCDParam(camera_handle, CONTROL_CURTEMP)
     hdul = fits.HDUList([hdu])
-    hdul.writeto("img_%04i_flash_exp_%.4g_gain_%03i_dark=%i.fits" % (im_count, exp_time/1e6, the_gain, is_dark), clobber = True)
+    hdul.writeto("img_%04i_flash_%s_exp_%.4g_gain_%03i_dark=%i.fits" % (im_count, suffix, exp_time/1e6, the_gain, is_dark), clobber = True)
     time.sleep(1)
 
-    print("Median", np.median(mono_image))
-
+    the_med = np.median(mono_image)
+    print("Median", the_med)
+    all_med_string += str(the_med) + "_"
+    
     qhyccd.CancelQHYCCDExposingAndReadout(camera_handle)
     im_count += 1
 
@@ -210,4 +233,4 @@ for exp_time, is_dark in tqdm.tqdm(exp_dark):
 qhyccd.CloseQHYCCD(camera_handle)
 qhyccd.ReleaseQHYCCDResource()
 
-do_it("ssh rubind@cdhcp101.IfA.Hawaii.Edu 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;bash done.sh'") 
+do_it("ssh " + mac_to_use + " 'cd /Users/rubind/Dropbox/Hawaii/qhy_imaging;bash done.sh %s'" % all_med_string) 
